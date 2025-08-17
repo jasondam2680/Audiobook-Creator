@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audiobook Creator</title>
+    <style>
+        :root {
+            --bg-color: #f5f5f7; --container-bg: #ffffff; --text-color: #1d1d1f;
+            --secondary-text: #6e6e73; --border-color: #d2d2d7; --accent-color: #007aff;
+            --accent-hover: #0071e3; --error-color: #f44336;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color); color: var(--text-color); margin: 0;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+        .container {
+            background-color: var(--container-bg); padding: 40px; border-radius: 18px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); width: 100%; max-width: 500px; text-align: center;
+        }
+        h1 { font-size: 28px; font-weight: 600; margin-bottom: 10px; }
+        p { color: var(--secondary-text); margin-bottom: 30px; }
+        .form-group { text-align: left; margin-bottom: 20px; }
+        label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+        input, select {
+            width: 100%; padding: 12px; border: 1px solid var(--border-color);
+            border-radius: 12px; font-size: 16px; box-sizing: border-box; background-color: var(--bg-color);
+        }
+        input:focus, select:focus {
+            outline: none; border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+        }
+        button {
+            width: 100%; padding: 14px; font-size: 17px; font-weight: 600; color: #fff;
+            background-color: var(--accent-color); border: none; border-radius: 12px;
+            cursor: pointer; transition: background-color 0.2s;
+        }
+        button:hover { background-color: var(--accent-hover); }
+        button:disabled { background-color: #d2d2d7; cursor: not-allowed; }
+        .status-area { margin-top: 30px; text-align: left; }
+        .progress-bar {
+            width: 100%; height: 8px; background-color: var(--border-color);
+            border-radius: 4px; overflow: hidden; margin-top: 10px;
+        }
+        .progress-bar-inner {
+            height: 100%; width: 0%; background-color: var(--accent-color);
+            transition: width 0.3s ease-in-out;
+        }
+        #status-text { color: var(--secondary-text); font-size: 14px; }
+        #download-link { display: none; margin-top: 20px; text-align: center; }
+        #download-link a { text-decoration: none; font-weight: 600; color: var(--accent-color); }
+        .error-text { color: var(--error-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Audiobook Creator</h1>
+        <p>Dán link truyện (Wattpad, tt1069,...) để chuyển thành sách nói.</p>
+        <form id="main-form">
+            <div class="form-group">
+                <label for="url">URL truyện</label>
+                <input type="url" id="url" name="url" required placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label for="voice">Giọng đọc</label>
+                <select id="voice" name="voice">
+                    <option value="vi-VN-NamMinhNeural">Tiếng Việt - Nam Minh (Nam)</option>
+                    <option value="zh-CN-YunxiNeural">Tiếng Trung (Quan Thoại) - Vân Tịch (Nam)</option>
+                    <option value="zh-HK-WanLungNeural">Tiếng Trung (Quảng Đông) - Vạn Long (Nam)</option>
+                    <option value="zh-CN-YunxiaNeural">Tiếng Trung (Quan Thoại) - Vân Hạ (Nữ)</option>
+                </select>
+            </div>
+            <button type="submit" id="submit-btn">Tạo Audio Book</button>
+        </form>
+        <div class="status-area">
+            <label>Trạng thái</label>
+            <div id="status-text">Sẵn sàng</div>
+            <div class="progress-bar">
+                <div class="progress-bar-inner" id="progress-inner"></div>
+            </div>
+            <div id="download-link"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('main-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const statusText = document.getElementById('status-text');
+        const progressInner = document.getElementById('progress-inner');
+        const downloadLinkDiv = document.getElementById('download-link');
+        let intervalId;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitBtn.disabled = true;
+            statusText.textContent = 'Đang gửi yêu cầu...';
+            progressInner.style.width = '0%';
+            downloadLinkDiv.style.display = 'none';
+            statusText.classList.remove('error-text');
+
+            const formData = new FormData(form);
+            await fetch('/start_task', { method: 'POST', body: formData });
+            
+            intervalId = setInterval(checkStatus, 2000); // Kiểm tra mỗi 2 giây
+        });
+
+        async function checkStatus() {
+            const response = await fetch('/task_status');
+            const data = await response.json();
+
+            statusText.textContent = data.status;
+            progressInner.style.width = data.progress + '%';
+
+            if (data.is_done) {
+                clearInterval(intervalId);
+                submitBtn.disabled = false;
+                if(data.file_url) {
+                    progressInner.style.width = '100%';
+                    downloadLinkDiv.innerHTML = `<a href="${data.file_url}" download>✔️ Tải xuống Audio Book</a>`;
+                    downloadLinkDiv.style.display = 'block';
+                }
+                if(data.error) {
+                    statusText.classList.add('error-text');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
