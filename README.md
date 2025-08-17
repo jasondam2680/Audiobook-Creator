@@ -9,9 +9,9 @@ Tool bán thủ công chuyển wattpad thành audiobook 0ffline
 mkdir wattpad-audiobook-webapp && cd wattpad-audiobook-webapp
 
 # Copy các file code từ artifacts:
-# 1. flask_app.py (Flask Backend Server)
+# 1. web_app.py (Flask Backend Server)
 # 2. index.html vào thư mục templates/
-# 3. requirements.txt
+# 3. thêm cookies.json
 
 # Cài đặt dependencies
 python -m venv venv
@@ -26,7 +26,7 @@ pip install flask flask-socketio selenium beautifulsoup4 webdriver-manager edge-
 ## 🚀 Bước 2: Chạy ứng dụng
 
 ```bash
-python flask_app.py
+python web_app.py
 ```
 
-**Truy cập:** http://localhost:5000
+**Truy cập:** http://localhost:5006
